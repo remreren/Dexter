@@ -20,16 +20,12 @@ import android.Manifest;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.DialogInterface;
 import android.os.Build;
 import android.os.Bundle;
 import com.google.android.material.snackbar.Snackbar;
 import androidx.core.content.ContextCompat;
 import android.view.View;
 import android.widget.TextView;
-import butterknife.BindView;
-import butterknife.ButterKnife;
-import butterknife.OnClick;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
 import com.karumi.dexter.listener.PermissionRequestErrorListener;
@@ -40,16 +36,14 @@ import com.karumi.dexter.listener.single.CompositePermissionListener;
 import com.karumi.dexter.listener.single.DialogOnDeniedPermissionListener;
 import com.karumi.dexter.listener.single.PermissionListener;
 import com.karumi.dexter.listener.single.SnackbarOnDeniedPermissionListener;
+import com.karumi.dexter.sample.databinding.SampleActivityBinding;
 
 /**
  * Sample activity showing the permission request process with Dexter.
  */
 public class SampleActivity extends Activity {
 
-  @BindView(R.id.audio_permission_feedback) TextView audioPermissionFeedbackView;
-  @BindView(R.id.camera_permission_feedback) TextView cameraPermissionFeedbackView;
-  @BindView(R.id.contacts_permission_feedback) TextView contactsPermissionFeedbackView;
-  @BindView(android.R.id.content) View contentView;
+  private View contentView;
 
   private MultiplePermissionsListener allPermissionsListener;
   private PermissionListener cameraPermissionListener;
@@ -57,14 +51,24 @@ public class SampleActivity extends Activity {
   private PermissionListener audioPermissionListener;
   private PermissionRequestErrorListener errorListener;
 
+  private SampleActivityBinding binding;
+
   @Override protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
-    setContentView(R.layout.sample_activity);
-    ButterKnife.bind(this);
+    binding = SampleActivityBinding.inflate(getLayoutInflater());
+    setContentView(binding.getRoot());
+
+    contentView = findViewById(android.R.id.content);
+
+    binding.allPermissionsButton.setOnClickListener(this::onAllPermissionsButtonClicked);
+    binding.cameraPermissionButton.setOnClickListener(this::onCameraPermissionButtonClicked);
+    binding.contactsPermissionButton.setOnClickListener(this::onContactsPermissionButtonClicked);
+    binding.audioPermissionButton.setOnClickListener(this::onAudioPermissionButtonClicked);
+
     createPermissionListeners();
   }
 
-  @OnClick(R.id.all_permissions_button) public void onAllPermissionsButtonClicked() {
+  public void onAllPermissionsButtonClicked(View v) {
     Dexter.withContext(getApplicationContext())
         .withPermissions(Manifest.permission.CAMERA, Manifest.permission.READ_CONTACTS,
             Manifest.permission.RECORD_AUDIO)
@@ -73,7 +77,7 @@ public class SampleActivity extends Activity {
         .check();
   }
 
-  @OnClick(R.id.camera_permission_button) public void onCameraPermissionButtonClicked() {
+  public void onCameraPermissionButtonClicked(View v) {
     new Thread(() -> Dexter.withContext(getApplicationContext())
         .withPermission(Manifest.permission.CAMERA)
         .withListener(cameraPermissionListener)
@@ -82,7 +86,7 @@ public class SampleActivity extends Activity {
         .check()).start();
   }
 
-  @OnClick(R.id.contacts_permission_button) public void onContactsPermissionButtonClicked() {
+  public void onContactsPermissionButtonClicked(View v) {
     Dexter.withContext(getApplicationContext())
         .withPermission(Manifest.permission.READ_CONTACTS)
         .withListener(contactsPermissionListener)
@@ -90,7 +94,7 @@ public class SampleActivity extends Activity {
         .check();
   }
 
-  @OnClick(R.id.audio_permission_button) public void onAudioPermissionButtonClicked() {
+  public void onAudioPermissionButtonClicked(View v) {
     Dexter.withContext(getApplicationContext())
         .withPermission(Manifest.permission.RECORD_AUDIO)
         .withListener(audioPermissionListener)
@@ -102,23 +106,15 @@ public class SampleActivity extends Activity {
   public void showPermissionRationale(final PermissionToken token) {
     new AlertDialog.Builder(this).setTitle(R.string.permission_rationale_title)
         .setMessage(R.string.permission_rationale_message)
-        .setNegativeButton(android.R.string.cancel, new DialogInterface.OnClickListener() {
-          @Override public void onClick(DialogInterface dialog, int which) {
-            dialog.dismiss();
-            token.cancelPermissionRequest();
-          }
+        .setNegativeButton(android.R.string.cancel, (dialog, which) -> {
+          dialog.dismiss();
+          token.cancelPermissionRequest();
         })
-        .setPositiveButton(android.R.string.ok, new DialogInterface.OnClickListener() {
-          @Override public void onClick(DialogInterface dialog, int which) {
-            dialog.dismiss();
-            token.continuePermissionRequest();
-          }
+        .setPositiveButton(android.R.string.ok, (dialog, which) -> {
+          dialog.dismiss();
+          token.continuePermissionRequest();
         })
-        .setOnDismissListener(new DialogInterface.OnDismissListener() {
-          @Override public void onDismiss(DialogInterface dialog) {
-            token.cancelPermissionRequest();
-          }
-        })
+        .setOnDismissListener(dialog -> token.cancelPermissionRequest())
         .show();
   }
 
@@ -180,13 +176,13 @@ public class SampleActivity extends Activity {
 
     switch (name) {
       case Manifest.permission.CAMERA:
-        feedbackView = cameraPermissionFeedbackView;
+        feedbackView = binding.cameraPermissionFeedback;
         break;
       case Manifest.permission.READ_CONTACTS:
-        feedbackView = contactsPermissionFeedbackView;
+        feedbackView = binding.contactsPermissionFeedback;
         break;
       case Manifest.permission.RECORD_AUDIO:
-        feedbackView = audioPermissionFeedbackView;
+        feedbackView = binding.audioPermissionFeedback;
         break;
       default:
         throw new RuntimeException("No feedback view for this permission");
